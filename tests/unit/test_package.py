@@ -1,5 +1,7 @@
 """Package metadata tests."""
 
+from importlib.metadata import version
+
 import pytest
 
 import litestar_pagination
@@ -9,4 +11,4 @@ pytestmark = pytest.mark.unit
 
 def test_version() -> None:
     """Expose the package version."""
-    assert litestar_pagination.__version__ == "0.1.0"
+    assert litestar_pagination.__version__ == version("litestar-pagination")
