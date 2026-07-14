@@ -1,0 +1,7 @@
+interface:
+  display_name: "GitHub Actions Pin Refresh"
+  short_description: "Refresh pinned GitHub Action SHAs and version comments."
+  default_prompt: "Use $github-actions-pin-refresh to audit .github workflows, update pinned action SHAs to the intended latest upstream refs, and fix trailing version comments."
+
+policy:
+  allow_implicit_invocation: true

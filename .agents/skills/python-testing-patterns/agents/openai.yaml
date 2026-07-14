@@ -1,0 +1,7 @@
+interface:
+  display_name: "Python Testing Patterns"
+  short_description: "Pytest patterns for cursor pagination."
+  default_prompt: "Use $python-testing-patterns to add or review behavior-focused cursor, SQLAlchemy, Litestar, and Advanced Alchemy tests."
+
+policy:
+  allow_implicit_invocation: true

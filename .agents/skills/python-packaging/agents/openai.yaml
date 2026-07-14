@@ -1,0 +1,7 @@
+interface:
+  display_name: "Python Packaging"
+  short_description: "Packaging, uv, dependencies, build, release."
+  default_prompt: "Use $python-packaging to modify or review pyproject.toml, uv dependencies, optional extras, build settings, or release tooling."
+
+policy:
+  allow_implicit_invocation: true

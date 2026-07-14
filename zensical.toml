@@ -1,0 +1,88 @@
+[project]
+site_name = "litestar-pagination"
+site_description = "Cursor/keyset pagination for Litestar."
+site_url = "https://zylvext.github.io/litestar-pagination/"
+site_author = "Vladislav Shepilov"
+copyright = "Copyright &copy; 2026 Vladislav Shepilov"
+docs_dir = "docs"
+site_dir = "site"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Contributing" = "contributing.md" },
+]
+
+[project.repository]
+name = "litestar-pagination"
+url = "https://github.com/ZYLVEXT/litestar-pagination"
+edit_uri = "edit/main/docs/"
+
+[project.theme]
+variant = "classic"
+language = "en"
+icon.repo = "fontawesome/brands/github"
+features = [
+  "search.suggest",
+  "search.highlight",
+  "content.code.copy",
+  "content.action.edit",
+  "content.action.view",
+  "navigation.tracking",
+  "navigation.top",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "slate"
+primary = "indigo"
+toggle.icon = "material/brightness-7"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "default"
+primary = "indigo"
+toggle.icon = "material/brightness-4"
+toggle.name = "Switch to system preference"
+
+[project.markdown_extensions.toc]
+permalink = true
+
+[project.markdown_extensions.attr_list]
+
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+pygments_lang_class = true
+line_spans = "__span"
+
+[project.markdown_extensions.pymdownx.inlinehilite]
+
+[project.markdown_extensions.pymdownx.snippets]
+base_path = ["."]
+
+[project.markdown_extensions.pymdownx.superfences]
+custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.pymdownx.details]
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.plugins.autorefs]
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["."]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "google"
+show_source = true
+show_root_heading = true
+merge_init_into_class = true
+show_if_no_docstring = false

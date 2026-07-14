@@ -1,0 +1,179 @@
+[project]
+name = "litestar-pagination"
+version = "0.1.0"
+description = "Cursor pagination for Litestar"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Vladislav Shepilov", email = "shepilov.v@protonmail.com"},
+]
+maintainers = [
+    {name = "Vladislav Shepilov", email = "shepilov.v@protonmail.com"},
+]
+keywords = ["litestar", "pagination", "cursor", "keyset", "sqlalchemy", "advanced-alchemy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+requires-python = "<3.15.0,>=3.12.0"
+dependencies = [
+    "litestar>=2.24.0,<3.0",
+]
+
+[project.urls]
+homepage = "https://github.com/ZYLVEXT/litestar-pagination"
+documentation = "https://zylvext.github.io/litestar-pagination/"
+source = "https://github.com/ZYLVEXT/litestar-pagination"
+tracker = "https://github.com/ZYLVEXT/litestar-pagination/issues"
+
+[project.optional-dependencies]
+sqlalchemy = [
+    "sqlalchemy>=2.0,<3.0",
+    "sqlakeyset>=2.0.1775222100,<3.0",
+]
+advanced-alchemy = [
+    "advanced-alchemy>=1.11.0,<2.0",
+    "litestar-pagination[sqlalchemy]",
+]
+all = ["litestar-pagination[advanced-alchemy]"]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1,<0.23",
+    "asyncpg>=0.31.0,<0.32",
+    "commitizen>=4.16.4",
+    "deptry>=0.25.1",
+    "httpx>=0.28.1,<0.29",
+    "pip-audit>=2.10.1",
+    "prek>=0.4.9",
+    "psycopg[binary]>=3.3.2,<4.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "pytest-deadfixtures>=3.1.0",
+    "pytest-timeout>=2.4.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.15.21",
+    "rust-just>=1.56.0",
+    "ty>=0.0.59",
+]
+docs = [
+    "mkdocstrings[python]>=1.0.6",
+    "pymdown-extensions>=11.0.1",
+    "zensical>=0.0.50",
+]
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+include = ["litestar_pagination", "tests"]
+
+[tool.deptry]
+experimental_namespace_package = true
+
+[tool.deptry.per_rule_ignores]
+# ponytail: bootstrap dependencies are unused until MVP modules land; remove entries as imports appear.
+DEP002 = ["advanced-alchemy", "litestar", "litestar-pagination", "sqlakeyset", "sqlalchemy"]
+
+[tool.uv]
+default-groups = []
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = [
+    ".git",
+    ".ruff_cache",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = [
+    "E501",  # line length is handled by ruff-format
+    "CPY001",  # copyright headers are not required
+    "COM812",  # conflicts with ruff-format
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ARG001", "ARG002", "N802", "N806", "PLC2701", "PLR6301", "S", "SLF"]
+
+[tool.pytest.ini_options]
+timeout = 60
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+minversion = "9.0"
+addopts = "-ra -q --strict-markers --maxprocesses=8"
+filterwarnings = [
+    "error",
+    "error:::litestar_pagination",
+]
+markers = """
+    unit: isolated behavior tests
+    integration: database or framework integration tests
+    e2e: end-to-end Litestar application tests
+"""
+
+[tool.coverage.run]
+source = ["litestar_pagination"]
+branch = true
+parallel = true
+concurrency = ["multiprocessing", "thread"]
+sigterm = true
+
+[tool.coverage.report]
+precision = 1
+fail_under = 100
+include = ["litestar_pagination/*"]
+omit = ["tests/*"]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "^\\s*@overload\\b",
+    "@(typing\\.)?overload",
+    "^\\s*\\.\\.\\.\\s*$",
+    "^\\s*class \\w+(\\[.*\\])?\\(.*Protocol\\b.*\\):",
+    "^\\s*type \\w+\\s*=",
+    "if __name__ == .__main__.:",
+]
+show_missing = true
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "semver"
+version_provider = "pep621"
+update_changelog_on_bump = false
+major_version_zero = true
+pre_bump_hooks = ["uv lock"]
+version_files = [
+    "pyproject.toml:version",
+    "litestar_pagination/__init__.py:__version__",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["litestar_pagination"]
+artifacts = ["litestar_pagination/py.typed"]

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Python Pro"
+  short_description: "Python 3.12+ standards for litestar-pagination."
+  default_prompt: "Use $python-pro to write or review Python code in this project with modern typing, Ruff ALL compliance, and project conventions."
+
+policy:
+  allow_implicit_invocation: true

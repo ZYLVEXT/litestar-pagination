@@ -1,0 +1,185 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    tags:
+      - "*.*.*"
+    paths:
+      - "examples/**"
+      - "litestar_pagination/**"
+      - "README.md"
+      - "tests/**"
+      - ".pre-commit-config.yaml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "justfile"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - "examples/**"
+      - "litestar_pagination/**"
+      - "README.md"
+      - "tests/**"
+      - ".pre-commit-config.yaml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "justfile"
+      - ".github/workflows/**"
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Test job: id-token write is required for OIDC JWT (GitHub Actions OIDC reference).
+# Codecov: use_oidc per codecov-action README; token alternative in Codecov token docs.
+# https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect
+# https://github.com/codecov/codecov-action#using-oidc
+# https://docs.codecov.com/docs/codecov-tokens
+
+env:
+  VENV_PRECOMMIT_CACHE_VERSION: v1
+
+jobs:
+  prek:
+    if: github.event.repository.fork == false
+    name: Prek
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON_PREFERENCE: only-managed
+      # Same as prek: skip hooks that are CI-inappropriate on default branch / shared runners.
+      SKIP: detect-aws-credentials,no-commit-to-branch
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set uv Python install dir
+        run: echo "UV_PYTHON_INSTALL_DIR=${RUNNER_TEMP}/uv-python-dir" >> "$GITHUB_ENV"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-python: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Local hooks use `uv run` (language: system); cache .venv like the former prek job.
+      # prek-action also caches the prek hook environment (default cache: true).
+      # Key includes run_id + run_attempt so "Re-run jobs" does not try to save the same
+      # cache key twice (GitHub: "another job may be creating this cache").
+      # restore-keys restores any prior attempt for this OS/Python; uv sync fixes deps if needed.
+      # See: https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
+      - name: Restore .venv cache (prek / uv run hooks)
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .venv
+          key: venv-precommit-${{ env.VENV_PRECOMMIT_CACHE_VERSION }}-${{ runner.os }}-3.12-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            venv-precommit-${{ env.VENV_PRECOMMIT_CACHE_VERSION }}-${{ runner.os }}-3.12-
+
+      - name: Install the project
+        run: uv sync --frozen --all-extras --group dev
+
+      - name: Save .venv cache (prek / uv run hooks)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .venv
+          key: venv-precommit-${{ env.VENV_PRECOMMIT_CACHE_VERSION }}-${{ runner.os }}-3.12-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Run prek
+        uses: j178/prek-action@e98a699c41eb69ab013a45817a0406469a748f8d # v2.0.5
+        with:
+          cache: true
+
+  test:
+    name: Test (${{ matrix.python-version }} on ${{ matrix.os }})
+    needs: [prek]
+    runs-on: ${{ matrix.os }}
+    if: github.event.repository.fork == false
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.12"
+          - "3.13"
+          - "3.14"
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-2025-vs2026
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-python: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add .local/bin to Windows PATH
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "$USERPROFILE/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Clear Python install dir (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rm -rf "${UV_PYTHON_INSTALL_DIR:-}" 2>/dev/null || true
+
+      - name: Set up Python
+        shell: bash
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install the project
+        run: uv sync --frozen --all-extras --group dev
+
+      # Install the coverage subprocess startup hook so pytest-cov measures
+      # import-time class/function definitions in modules that pytest-cov
+      # imports during plugin discovery (otherwise instrumentation starts
+      # after those modules are already in sys.modules).
+      # See: https://coverage.readthedocs.io/en/latest/subprocess.html
+      - name: Install coverage subprocess hook
+        run: >-
+          uv run python -c
+          "import sysconfig, pathlib;
+          p = pathlib.Path(sysconfig.get_paths()['purelib']) / 'coverage_subprocess.pth';
+          p.write_text('import coverage; coverage.process_startup()\n');
+          print(f'Installed {p}')"
+
+      - name: Detect dead fixtures
+        run: uv run pytest --dead-fixtures
+
+      - name: Run tests (coverage + XML for Codecov)
+        env:
+          COVERAGE_PROCESS_START: pyproject.toml
+        run: >-
+          uv run pytest
+          --cov=litestar_pagination
+          --cov-branch
+          --cov-report=term-missing
+          --cov-report=xml
+          --cov-fail-under=100
+          -n auto
+
+      # Codecov flags: ^[\w.\-]{1,45}$ (alphanumeric, _, -, .); see https://docs.codecov.com/docs/flags
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          fail_ci_if_error: true
+          files: coverage.xml
+          flags: ${{ matrix.os }}
+          name: py-${{ matrix.python-version }}-${{ matrix.os }}
+          use_oidc: true

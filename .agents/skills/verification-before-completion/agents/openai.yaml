@@ -1,0 +1,7 @@
+interface:
+  display_name: "Verification Before Completion"
+  short_description: "Require fresh evidence before completion claims."
+  default_prompt: "Use $verification-before-completion before claiming work is complete, fixed, passing, committed, or ready for PR."
+
+policy:
+  allow_implicit_invocation: true

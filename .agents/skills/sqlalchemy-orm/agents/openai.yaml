@@ -1,0 +1,7 @@
+interface:
+  display_name: "SQLAlchemy ORM"
+  short_description: "Keyset queries, sessions, counts, and result shapes."
+  default_prompt: "Use $sqlalchemy-orm to change or review SQLAlchemy/sqlakeyset cursor-pagination code."
+
+policy:
+  allow_implicit_invocation: true
