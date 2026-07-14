@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12.0, <3.15.0"
 
 [[package]]
@@ -670,7 +670,7 @@ dev = [
     { name = "httpx", specifier = ">=0.28.1,<0.29" },
     { name = "pip-audit", specifier = ">=2.10.1" },
     { name = "prek", specifier = ">=0.4.9" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.2,<4.0" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4,<4.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
