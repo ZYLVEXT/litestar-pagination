@@ -223,5 +223,5 @@ jobs:
 
       - name: Run full test suite against PostgreSQL
         run: |
-          just setup
-          just test
+          uv run --group dev just setup
+          uv run --group dev just test
