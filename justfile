@@ -25,11 +25,11 @@ lint:
 
 # Format the codebase with Ruff.
 format:
-    uv run ruff format .
+    uv run ruff format --preview .
 
 # Check formatting without changing files.
 format-check:
-    uv run ruff format --check .
+    uv run ruff format --preview --check .
 
 # Run static type checks with ty.
 typecheck:
@@ -59,7 +59,7 @@ prek:
 # Run CI-style checks without auto-fixing files.
 check:
     uv run ruff check .
-    uv run ruff format --check .
+    uv run ruff format --preview --check .
     uv run ty check
 
 # Alias for the dependency audit command.

@@ -145,31 +145,27 @@ def _schema_name() -> str:
 
 def _seed_sync(session: Session) -> None:
     """Insert deterministic test data."""
-    session.add_all(
-        [
-            PostgresWidget(id=1, rank=1, bucket="blue"),
-            PostgresWidget(id=2, rank=1, bucket="blue"),
-            PostgresWidget(id=3, rank=2, bucket="red"),
-            PostgresWidget(id=4, rank=2, bucket="blue"),
-            PostgresWidget(id=5, rank=3, bucket="red"),
-            PostgresWidget(id=6, rank=3, bucket="blue"),
-        ]
-    )
+    session.add_all([
+        PostgresWidget(id=1, rank=1, bucket="blue"),
+        PostgresWidget(id=2, rank=1, bucket="blue"),
+        PostgresWidget(id=3, rank=2, bucket="red"),
+        PostgresWidget(id=4, rank=2, bucket="blue"),
+        PostgresWidget(id=5, rank=3, bucket="red"),
+        PostgresWidget(id=6, rank=3, bucket="blue"),
+    ])
     session.commit()
 
 
 async def _seed_async(session: AsyncSession) -> None:
     """Insert deterministic test data asynchronously."""
-    session.add_all(
-        [
-            PostgresWidget(id=1, rank=1, bucket="blue"),
-            PostgresWidget(id=2, rank=1, bucket="blue"),
-            PostgresWidget(id=3, rank=2, bucket="red"),
-            PostgresWidget(id=4, rank=2, bucket="blue"),
-            PostgresWidget(id=5, rank=3, bucket="red"),
-            PostgresWidget(id=6, rank=3, bucket="blue"),
-        ]
-    )
+    session.add_all([
+        PostgresWidget(id=1, rank=1, bucket="blue"),
+        PostgresWidget(id=2, rank=1, bucket="blue"),
+        PostgresWidget(id=3, rank=2, bucket="red"),
+        PostgresWidget(id=4, rank=2, bucket="blue"),
+        PostgresWidget(id=5, rank=3, bucket="red"),
+        PostgresWidget(id=6, rank=3, bucket="blue"),
+    ])
     await session.commit()
 
 

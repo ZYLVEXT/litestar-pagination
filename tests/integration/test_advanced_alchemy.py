@@ -42,12 +42,10 @@ class AdvancedAlchemyWidget(UUIDAuditBase):
 
 def _add_widgets(session: Session) -> None:
     """Insert deterministic UUID-keyed entities into a synchronous session."""
-    session.add_all(
-        [
-            AdvancedAlchemyWidget(id=FIRST_ID, name="Ada"),
-            AdvancedAlchemyWidget(id=SECOND_ID, name="Grace"),
-        ]
-    )
+    session.add_all([
+        AdvancedAlchemyWidget(id=FIRST_ID, name="Ada"),
+        AdvancedAlchemyWidget(id=SECOND_ID, name="Grace"),
+    ])
     session.commit()
 
 
@@ -79,12 +77,10 @@ async def test_advanced_alchemy_async_session_works_unchanged(tmp_path: Path) ->
 
     try:
         async with config.create_session_maker()() as session:
-            session.add_all(
-                [
-                    AdvancedAlchemyWidget(id=FIRST_ID, name="Ada"),
-                    AdvancedAlchemyWidget(id=SECOND_ID, name="Grace"),
-                ]
-            )
+            session.add_all([
+                AdvancedAlchemyWidget(id=FIRST_ID, name="Ada"),
+                AdvancedAlchemyWidget(id=SECOND_ID, name="Grace"),
+            ])
             await session.commit()
             page = await apaginate(
                 session,

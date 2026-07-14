@@ -105,31 +105,27 @@ async def async_session(tmp_path: Path) -> AsyncIterator[AsyncSession]:
 
 def _seed_sync(session: Session) -> None:
     """Insert rows with duplicate leading ordering values."""
-    session.add_all(
-        [
-            Widget(id=1, rank=1, bucket="blue"),
-            Widget(id=2, rank=1, bucket="blue"),
-            Widget(id=3, rank=2, bucket="red"),
-            Widget(id=4, rank=2, bucket="blue"),
-            Widget(id=5, rank=3, bucket="red"),
-            Widget(id=6, rank=3, bucket="blue"),
-        ]
-    )
+    session.add_all([
+        Widget(id=1, rank=1, bucket="blue"),
+        Widget(id=2, rank=1, bucket="blue"),
+        Widget(id=3, rank=2, bucket="red"),
+        Widget(id=4, rank=2, bucket="blue"),
+        Widget(id=5, rank=3, bucket="red"),
+        Widget(id=6, rank=3, bucket="blue"),
+    ])
     session.commit()
 
 
 async def _seed_async(session: AsyncSession) -> None:
     """Insert rows with duplicate leading ordering values asynchronously."""
-    session.add_all(
-        [
-            Widget(id=1, rank=1, bucket="blue"),
-            Widget(id=2, rank=1, bucket="blue"),
-            Widget(id=3, rank=2, bucket="red"),
-            Widget(id=4, rank=2, bucket="blue"),
-            Widget(id=5, rank=3, bucket="red"),
-            Widget(id=6, rank=3, bucket="blue"),
-        ]
-    )
+    session.add_all([
+        Widget(id=1, rank=1, bucket="blue"),
+        Widget(id=2, rank=1, bucket="blue"),
+        Widget(id=3, rank=2, bucket="red"),
+        Widget(id=4, rank=2, bucket="blue"),
+        Widget(id=5, rank=3, bucket="red"),
+        Widget(id=6, rank=3, bucket="blue"),
+    ])
     await session.commit()
 
 
@@ -236,13 +232,11 @@ def test_default_count_query_removes_ordering() -> None:
 def test_sync_empty_page_and_entity_uniquification(sync_session: Session) -> None:
     """Return entities rather than rows for empty and joined queries."""
     _seed_sync(sync_session)
-    sync_session.add_all(
-        [
-            WidgetNote(id=1, widget_id=1),
-            WidgetNote(id=2, widget_id=1),
-            WidgetNote(id=3, widget_id=2),
-        ]
-    )
+    sync_session.add_all([
+        WidgetNote(id=1, widget_id=1),
+        WidgetNote(id=2, widget_id=1),
+        WidgetNote(id=3, widget_id=2),
+    ])
     sync_session.commit()
 
     empty = paginate(sync_session, _ordered_widgets().where(false()), CursorParams(size=PAGE_SIZE))
@@ -385,13 +379,11 @@ async def test_async_custom_count_and_no_total(async_session: AsyncSession) -> N
         count_query=prohibited_count_query,
     )
 
-    async_session.add_all(
-        [
-            WidgetNote(id=1, widget_id=1),
-            WidgetNote(id=2, widget_id=1),
-            WidgetNote(id=3, widget_id=2),
-        ]
-    )
+    async_session.add_all([
+        WidgetNote(id=1, widget_id=1),
+        WidgetNote(id=2, widget_id=1),
+        WidgetNote(id=3, widget_id=2),
+    ])
     await async_session.commit()
     joined = await apaginate(
         async_session,
