@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12.0, <3.15.0"
 
 [[package]]
@@ -602,7 +602,7 @@ wheels = [
 
 [[package]]
 name = "litestar-pagination"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "litestar" },
