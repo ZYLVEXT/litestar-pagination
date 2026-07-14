@@ -102,8 +102,8 @@ Conceptual parameter model:
 ```python
 @dataclass
 class CursorParams:
-    cursor: Annotated[str | None, Parameter(query="cursor", required=False)] = None
-    size: Annotated[int, Parameter(query="size", ge=1, le=100, required=False)] = 50
+    cursor: Annotated[str | None, QueryParameter(name="cursor", required=False)] = None
+    size: Annotated[int, QueryParameter(name="size", ge=1, le=100, required=False)] = 50
     include_total: ClassVar[bool] = True
 ```
 
@@ -130,7 +130,12 @@ class CursorPage(Generic[T]):
 ### 8.2 SQLAlchemy exports
 
 ```python
-from litestar_pagination.ext.sqlalchemy import apaginate, paginate
+from litestar_pagination.ext.sqlalchemy import (
+    SQLAlchemyAsyncCursorPaginator,
+    SQLAlchemySyncCursorPaginator,
+    apaginate,
+    paginate,
+)
 ```
 
 The sync and async APIs are deliberately separate:
@@ -150,13 +155,19 @@ Both functions accept:
 
 Both return `CursorPage[T]` with precise generic typing.
 
+The package also provides `SQLAlchemyAsyncCursorPaginator[T]` and
+`SQLAlchemySyncCursorPaginator[T]`. They implement Litestar's
+`AbstractAsyncCursorPaginator[str, T]` and `AbstractSyncCursorPaginator[str, T]`, respectively,
+and return the framework's forward-only `CursorPagination[str, T]`. This mode does not expose
+backward bookmarks or totals; `CursorPage` remains the rich bidirectional contract.
+
 ## 9. Litestar integration
 
 The package uses ordinary Litestar dependency injection. No application plugin is required.
 
 ```python
 from litestar import Litestar, get
-from litestar.di import Provide
+from litestar.di import NamedDependency, Provide
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -167,7 +178,7 @@ from litestar_pagination.ext.sqlalchemy import apaginate
 @get("/users")
 async def list_users(
     session: AsyncSession,
-    pagination: CursorParams,
+    pagination: NamedDependency[CursorParams],
 ) -> CursorPage[User]:
     statement = select(User).order_by(User.created_at, User.id)
     return await apaginate(session, statement, pagination)
@@ -181,7 +192,25 @@ app = Litestar(
 )
 ```
 
-The same dependency may be registered at application, router, controller, or handler scope using standard Litestar layering.
+The same dependency may be registered at application, router, controller, or handler scope using standard Litestar layering. Handlers use `NamedDependency[CursorParams]`, which is Litestar's non-deprecated named dependency annotation.
+
+For a framework-native forward-only response, handlers may return the corresponding SQLAlchemy paginator:
+
+```python
+from litestar.pagination import CursorPagination
+
+
+@get("/users")
+async def list_users(
+    session: AsyncSession,
+    pagination: NamedDependency[CursorParams],
+) -> CursorPagination[str, User]:
+    paginator = SQLAlchemyAsyncCursorPaginator(
+        session,
+        select(User).order_by(User.created_at, User.id),
+    )
+    return await paginator(pagination.cursor, pagination.size)
+```
 
 The response must work with Litestar's generic-wrapper DTO handling. In particular, `SQLAlchemyDTO[User]` must transform the objects inside `CursorPage[User].items` without a package-specific transformer.
 
@@ -195,7 +224,7 @@ MVP integration is compatibility, documentation, and tests—not a new Advanced 
 @get("/users")
 async def list_users(
     db_session: AsyncSession,
-    pagination: CursorParams,
+    pagination: NamedDependency[CursorParams],
 ) -> CursorPage[User]:
     return await apaginate(
         db_session,
@@ -330,7 +359,7 @@ The repository must follow Litestar and Advanced Alchemy conventions where appli
 - `pyproject.toml`-based packaging;
 - complete type annotations and a `py.typed` marker;
 - Ruff formatting and linting;
-- mypy and pyright checks;
+- ty static type checks;
 - pytest tests with sync and async coverage;
 - coverage reporting with all core branches exercised;
 - pre-commit configuration matching CI checks;
