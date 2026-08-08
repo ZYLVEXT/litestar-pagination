@@ -7,5 +7,5 @@ forward-only `CursorPagination` through `AbstractAsyncCursorPaginator` and
 `AbstractSyncCursorPaginator` implementations.
 
 See the [documentation](https://zylvext.github.io/litestar-pagination/) for installation,
-quickstarts, navigation, totals, and Advanced Alchemy examples. The detailed contract is in
-[PRD.md](PRD.md).
+quickstarts, navigation, totals, Advanced Alchemy examples, compatibility, and the complete public
+contract.

@@ -175,7 +175,6 @@ pyrightconfig.json
 .uv-cache
 
 # Local code indexes and agent caches
-.claude/
 .cursor/
 .codacy/
 .codegraph/

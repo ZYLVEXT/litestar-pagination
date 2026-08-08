@@ -180,7 +180,7 @@ def _page_ids(page: CursorPage[PostgresWidget]) -> list[int]:
 
 
 def test_postgres_sync_navigation_counts_and_incompatible_cursor(sync_session: Session) -> None:
-    """Traverse all PostgreSQL rows and reject a bookmark for another ordering."""
+    """Traverse PostgreSQL rows with compound orders and reject incompatible cursors."""
     _seed_sync(sync_session)
     statement = _ordered_widgets()
     first = paginate(sync_session, statement, CursorParams(size=PAGE_SIZE))
@@ -195,6 +195,15 @@ def test_postgres_sync_navigation_counts_and_incompatible_cursor(sync_session: S
         _page_ids(paginate(sync_session, statement, CursorParams(cursor=third.previous_page, size=PAGE_SIZE)))
         == SECOND_PAGE_IDS
     )
+
+    mixed = select(PostgresWidget).order_by(PostgresWidget.bucket, desc(PostgresWidget.id))
+    mixed_first = paginate(sync_session, mixed, CursorParams(size=CUSTOM_TOTAL))
+    mixed_second = paginate(
+        sync_session,
+        mixed,
+        CursorParams(cursor=mixed_first.next_page, size=CUSTOM_TOTAL),
+    )
+    assert _page_ids(mixed_first) + _page_ids(mixed_second) == [6, 4, 2, 1, 5, 3]
 
     with pytest.raises(ValidationException, match="Invalid cursor") as error:
         paginate(
@@ -247,3 +256,12 @@ async def test_postgres_async_navigation_descending_empty_and_counts(async_sessi
     assert empty.total == 0
     assert custom.total == PAGE_SIZE
     assert without_total.total is None
+
+    with pytest.raises(ValidationException, match="Invalid cursor") as error:
+        await apaginate(
+            async_session,
+            select(PostgresWidget).order_by(PostgresWidget.id),
+            CursorParams(cursor=first.next_page, size=PAGE_SIZE),
+        )
+
+    assert error.value.status_code == BAD_REQUEST

@@ -35,7 +35,7 @@ tracker = "https://github.com/ZYLVEXT/litestar-pagination/issues"
 
 [project.optional-dependencies]
 sqlalchemy = [
-    "sqlalchemy>=2.0,<3.0",
+    "sqlalchemy>=2.0.51,<3.0",
     "sqlakeyset>=2.0.1775222100,<3.0",
 ]
 advanced-alchemy = [
@@ -177,3 +177,15 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["litestar_pagination"]
 artifacts = ["litestar_pagination/py.typed"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/README.md",
+    "/docs",
+    "/litestar_pagination",
+    "/pyproject.toml",
+    "/tests",
+    "/zensical.toml",
+]
