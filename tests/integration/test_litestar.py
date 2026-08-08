@@ -9,7 +9,9 @@ import pytest
 from advanced_alchemy.extensions.litestar.dto import SQLAlchemyDTO
 from litestar import Controller, Litestar, get
 from litestar.di import NamedDependency, Provide
-from litestar.pagination import CursorPagination  # noqa: TC002 - Litestar resolves handler annotations at runtime.
+from litestar.pagination import (
+    CursorPagination,  # ruff: ignore[typing-only-third-party-import] - Litestar resolves handler annotations at runtime.
+)
 from litestar.testing import TestClient
 from sqlalchemy import Integer, String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column

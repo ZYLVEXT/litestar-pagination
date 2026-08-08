@@ -9,6 +9,7 @@
 - Restrict source distributions to public package, test, documentation, and release-verification files.
 - Raise the SQLAlchemy floor to the current stable 2.0.51 release verified by the full matrix.
 - Add tag-bound release verification, reproducible builds, CycloneDX SBOMs, build attestations, Trusted Publishing, and guarded Pages deployment.
+- Refresh the build, lint, type-checking, test, documentation, and prek toolchain to current stable releases.
 
 ## 0.2.0 (2026-07-14)
 

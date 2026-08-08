@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from base64 import b64decode, b64encode
 from binascii import Error as BinasciiError
-from collections.abc import Sequence  # noqa: TC003 - Litestar resolves dataclass annotations at runtime.
+from collections.abc import (
+    Sequence,  # ruff: ignore[typing-only-standard-library-import] - Litestar resolves dataclass annotations at runtime.
+)
 from dataclasses import dataclass
 from typing import Annotated, ClassVar
 from urllib.parse import quote, unquote
