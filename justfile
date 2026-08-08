@@ -35,6 +35,10 @@ format-check:
 typecheck:
     uv run ty check
 
+# Validate immutable GitHub Action and Docker image references.
+pin-check:
+    uv run python scripts/validate_dependency_pins.py
+
 # Audit dependencies for known vulnerabilities and dependency issues.
 audit:
     uv run pip-audit
@@ -61,6 +65,7 @@ check:
     uv run ruff check .
     uv run ruff format --preview --check .
     uv run ty check
+    uv run python scripts/validate_dependency_pins.py
 
 # Alias for the dependency audit command.
 security: audit

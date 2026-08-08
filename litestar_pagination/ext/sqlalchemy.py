@@ -202,7 +202,7 @@ def _validate_statement[T](statement: Select[tuple[T]]) -> None:
     if not isinstance(statement, Select):
         message = "Cursor pagination requires a SQLAlchemy Select statement."
         raise TypeError(message)
-    if not statement._order_by_clauses:  # noqa: SLF001 - SQLAlchemy exposes no public ORDER BY inspector.
+    if not statement._order_by_clauses:  # ruff: ignore[private-member-access] - SQLAlchemy exposes no public ORDER BY inspector.
         message = "Cursor pagination requires ordering"
         raise ValueError(message)
 
