@@ -657,7 +657,7 @@ requires-dist = [
     { name = "litestar-pagination", extras = ["advanced-alchemy"], marker = "extra == 'all'" },
     { name = "litestar-pagination", extras = ["sqlalchemy"], marker = "extra == 'advanced-alchemy'" },
     { name = "sqlakeyset", marker = "extra == 'sqlalchemy'", specifier = ">=2.0.1775222100,<3.0" },
-    { name = "sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = ">=2.0,<3.0" },
+    { name = "sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = ">=2.0.51,<3.0" },
 ]
 provides-extras = ["sqlalchemy", "advanced-alchemy", "all"]
 

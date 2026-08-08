@@ -57,6 +57,10 @@ statement with no `ORDER BY`, but it intentionally does not infer or append a pr
 select(User).order_by(User.created_at, User.id)
 ```
 
+Ordering columns should be non-nullable. `sqlakeyset` cannot reliably traverse nullable ordering
+values, and the package deliberately does not invent a null-ordering policy on behalf of the
+application.
+
 ## Two Litestar response contracts
 
 ### Rich bidirectional pages
@@ -181,6 +185,10 @@ Bookmarks are sqlakeyset strings encoded with Base64 and URL escaping, following
 stable API schema. Malformed Base64, malformed sqlakeyset bookmarks, and a bookmark incompatible
 with the query yield Litestar's HTTP 400 validation response.
 
+Cursor parsing and the page query run before an optional total count. Invalid cursors therefore do
+not execute a count query. SQL compilation, count-query, and database failures remain server-side
+SQLAlchemy errors and are never relabeled as client validation failures.
+
 Base64 is not encryption or signing. Cursors can reveal ordered values to a determined client and
 must not be treated as confidential or tamper-proof. Add signing at an application boundary if
 your threat model requires it.
@@ -189,7 +197,7 @@ your threat model requires it.
 
 - Python `>=3.12,<3.15`
 - Litestar `>=2.24,<3`
-- SQLAlchemy `>=2,<3`
+- SQLAlchemy `>=2.0.51,<3`
 - Advanced Alchemy `>=1.11,<2`
 - SQLite and PostgreSQL, both synchronous and asynchronous sessions
 

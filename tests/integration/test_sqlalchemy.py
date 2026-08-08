@@ -188,18 +188,26 @@ def test_native_litestar_sync_paginator(sync_session: Session) -> None:
 
 
 def test_sync_counts_filters_and_descending_order(sync_session: Session) -> None:
-    """Count the filtered set and retain descending compound ordering."""
+    """Count filters and retain descending and mixed compound ordering."""
     _seed_sync(sync_session)
     filtered = select(Widget).where(Widget.bucket == "blue").order_by(Widget.rank, Widget.id)
     descending = select(Widget).order_by(desc(Widget.rank), desc(Widget.id))
+    mixed = select(Widget).order_by(Widget.bucket, desc(Widget.id))
 
     filtered_page = paginate(sync_session, filtered, CursorParams(size=PAGE_SIZE))
     descending_page = paginate(sync_session, descending, CursorParams(size=CUSTOM_TOTAL))
+    mixed_first = paginate(sync_session, mixed, CursorParams(size=CUSTOM_TOTAL))
+    mixed_second = paginate(
+        sync_session,
+        mixed,
+        CursorParams(cursor=mixed_first.next_page, size=CUSTOM_TOTAL),
+    )
     larger_page = paginate(sync_session, _ordered_widgets(), CursorParams(size=GREATER_THAN_TOTAL_PAGE_SIZE))
 
     assert _page_ids(filtered_page) == [1, 2]
     assert filtered_page.total == FILTERED_TOTAL
     assert _page_ids(descending_page) == [6, 5, 4]
+    assert _page_ids(mixed_first) + _page_ids(mixed_second) == [6, 4, 2, 1, 5, 3]
     assert _page_ids(larger_page) == ALL_IDS
 
 
@@ -307,6 +315,20 @@ def test_sync_invalid_sqlakeyset_bookmark_is_a_validation_error(sync_session: Se
     assert error.value.status_code == BAD_REQUEST
 
 
+def test_sync_invalid_cursor_does_not_execute_count(sync_session: Session) -> None:
+    """Reject an incompatible cursor before executing a caller-supplied count."""
+    _seed_sync(sync_session)
+    prohibited_count_query = cast("Select[tuple[int]]", select(text("missing_count_column")))
+
+    with pytest.raises(ValidationException, match="Invalid cursor"):
+        paginate(
+            sync_session,
+            _ordered_widgets(),
+            CursorParams(cursor=encode_cursor(">i:1~i:2~i:3"), size=PAGE_SIZE),
+            count_query=prohibited_count_query,
+        )
+
+
 def test_sync_database_errors_are_preserved(sync_session: Session) -> None:
     """Do not turn database failures into client cursor errors."""
     _seed_sync(sync_session)
@@ -378,6 +400,13 @@ async def test_async_custom_count_and_no_total(async_session: AsyncSession) -> N
         NoTotalParams(size=PAGE_SIZE),
         count_query=prohibited_count_query,
     )
+    mixed = select(Widget).order_by(Widget.bucket, desc(Widget.id))
+    mixed_first = await apaginate(async_session, mixed, CursorParams(size=CUSTOM_TOTAL))
+    mixed_second = await apaginate(
+        async_session,
+        mixed,
+        CursorParams(cursor=mixed_first.next_page, size=CUSTOM_TOTAL),
+    )
 
     async_session.add_all([
         WidgetNote(id=1, widget_id=1),
@@ -393,6 +422,7 @@ async def test_async_custom_count_and_no_total(async_session: AsyncSession) -> N
 
     assert custom.total == PAGE_SIZE
     assert without_total.total is None
+    assert _page_ids(mixed_first) + _page_ids(mixed_second) == [6, 4, 2, 1, 5, 3]
     assert _page_ids(joined) == ALL_IDS
 
 
@@ -408,3 +438,23 @@ async def test_async_invalid_sqlakeyset_bookmark_is_a_validation_error(async_ses
         )
 
     assert error.value.status_code == BAD_REQUEST
+
+
+async def test_async_invalid_cursor_skips_count_and_database_errors_are_preserved(
+    async_session: AsyncSession,
+) -> None:
+    """Reject bad cursors before counts while preserving async database failures."""
+    await _seed_async(async_session)
+    prohibited_count_query = cast("Select[tuple[int]]", select(text("missing_count_column")))
+
+    with pytest.raises(ValidationException, match="Invalid cursor"):
+        await apaginate(
+            async_session,
+            _ordered_widgets(),
+            CursorParams(cursor=encode_cursor(">i:1~i:2~i:3"), size=PAGE_SIZE),
+            count_query=prohibited_count_query,
+        )
+
+    statement = select(Widget).where(text("missing_column = 1")).order_by(Widget.id)
+    with pytest.raises(OperationalError):
+        await apaginate(async_session, statement, CursorParams(size=PAGE_SIZE))

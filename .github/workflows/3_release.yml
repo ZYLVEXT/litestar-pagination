@@ -70,9 +70,15 @@ jobs:
           uv build
           mkdir -p dist2 && cp dist/*.whl dist/*.tar.gz dist2/
 
-      - name: Compare wheel hashes
+      - name: Compare distribution hashes
         run: |
-          for f in dist1/*.whl; do
+          shopt -s nullglob
+          artifacts=(dist1/*.whl dist1/*.tar.gz)
+          if [ "${#artifacts[@]}" -eq 0 ]; then
+            echo "No distributions found under dist1/"
+            exit 1
+          fi
+          for f in "${artifacts[@]}"; do
             name=$(basename "$f")
             h1=$(sha256sum "dist1/$name" | cut -d' ' -f1)
             h2=$(sha256sum "dist2/$name" | cut -d' ' -f1)
@@ -82,7 +88,7 @@ jobs:
             fi
             echo "OK $name"
           done
-          echo "Reproducible: wheel hashes match (same runner, Python 3.12, lockfile, SOURCE_DATE_EPOCH=0)."
+          echo "Reproducible: wheel and sdist hashes match (same runner, Python 3.12, lockfile, SOURCE_DATE_EPOCH=0)."
 
       - name: Upload verified dist
         run: mkdir -p dist && cp dist1/* dist/

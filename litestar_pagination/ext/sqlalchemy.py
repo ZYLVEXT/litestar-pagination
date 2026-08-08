@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, override
 
 from litestar.pagination import AbstractAsyncCursorPaginator, AbstractSyncCursorPaginator
-from sqlakeyset import BadBookmark, InvalidPage, Page, select_page
+from sqlakeyset import BadBookmark, InvalidPage, Page, select_page, unserialize_bookmark
 from sqlakeyset.asyncio import select_page as aselect_page
 from sqlalchemy import func, select
-from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import noload
 from sqlalchemy.sql import Select
 
 if TYPE_CHECKING:
+    from sqlakeyset import Marker
     from sqlalchemy.engine import Row
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import Session
@@ -50,6 +50,7 @@ class SQLAlchemySyncCursorPaginator[T](AbstractSyncCursorPaginator[str, T]):
         self._statement = statement
         self._unique = unique
 
+    @override
     def get_items(self, cursor: str | None, results_per_page: int) -> tuple[list[T], str | None]:
         """Return one forward page in Litestar's paginator shape.
 
@@ -84,6 +85,7 @@ class SQLAlchemyAsyncCursorPaginator[T](AbstractAsyncCursorPaginator[str, T]):
         self._statement = statement
         self._unique = unique
 
+    @override
     async def get_items(self, cursor: str | None, results_per_page: int) -> tuple[list[T], str | None]:
         """Return one forward page in Litestar's paginator shape.
 
@@ -127,15 +129,14 @@ def paginate[T](
         ValidationException: If the supplied cursor is invalid.
     """
     _validate_statement(statement)
-    cursor = decode_cursor(params.cursor)
-    total = _sync_total(session, statement, params, count_query)
+    marker = _decode_page_marker(params.cursor)
 
     try:
-        page = select_page(session, statement, page=cursor, per_page=params.size, unique=unique)
-    except (ArgumentError, BadBookmark, InvalidPage) as exc:
+        page = select_page(session, statement, page=marker, per_page=params.size, unique=unique)
+    except InvalidPage as exc:
         raise ValidationException(detail="Invalid cursor") from exc
 
-    return _cursor_page(page, total)
+    return _cursor_page(page, _sync_total(session, statement, params, count_query))
 
 
 async def apaginate[T](
@@ -162,15 +163,33 @@ async def apaginate[T](
         ValidationException: If the supplied cursor is invalid.
     """
     _validate_statement(statement)
-    cursor = decode_cursor(params.cursor)
-    total = await _async_total(session, statement, params, count_query)
+    marker = _decode_page_marker(params.cursor)
 
     try:
-        page = await aselect_page(session, statement, page=cursor, per_page=params.size, unique=unique)
-    except (ArgumentError, BadBookmark, InvalidPage) as exc:
+        page = await aselect_page(session, statement, page=marker, per_page=params.size, unique=unique)
+    except InvalidPage as exc:
         raise ValidationException(detail="Invalid cursor") from exc
 
-    return _cursor_page(page, total)
+    return _cursor_page(page, await _async_total(session, statement, params, count_query))
+
+
+def _decode_page_marker(cursor: str | None) -> Marker | None:
+    """Decode and parse an external cursor before any database work.
+
+    Returns:
+        A sqlakeyset marker, or ``None`` for the first page.
+
+    Raises:
+        ValidationException: If the cursor is not a valid sqlakeyset bookmark.
+    """
+    bookmark = decode_cursor(cursor)
+    if bookmark is None:
+        return None
+
+    try:
+        return unserialize_bookmark(bookmark)
+    except BadBookmark as exc:
+        raise ValidationException(detail="Invalid cursor") from exc
 
 
 def _validate_statement[T](statement: Select[tuple[T]]) -> None:
