@@ -1,6 +1,6 @@
 [project]
 name = "litestar-pagination"
-version = "1.0.0"
+version = "1.1.0"
 description = "Cursor pagination for Litestar"
 readme = "README.md"
 license = "MIT"

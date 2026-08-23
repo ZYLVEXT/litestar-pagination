@@ -98,7 +98,7 @@ page = await apaginate(
 
 Scoped cursors keep the existing opaque Base64 representation. A missing or different scope is rejected
 with HTTP 400 before a page or count query runs. Omitting `cursor_scope` preserves the original cursor
-bytes and behavior.
+bytes and behavior. The native Litestar paginators below take no scope.
 
 ### Native Litestar forward-only pages
 

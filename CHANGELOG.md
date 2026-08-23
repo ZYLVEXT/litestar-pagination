@@ -1,9 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 (2026-08-23)
 
 - Add `CursorPage.with_items()` for metadata-preserving item projection.
-- Add optional application scopes to synchronous and asynchronous SQLAlchemy cursors.
+- Add an optional `cursor_scope` to `paginate()` and `apaginate()` that binds every emitted and
+  accepted cursor to an application-owned ordering or filter contract, rejecting a cursor from
+  another scope with HTTP 400 before any page or count query runs. Litestar's native
+  `SQLAlchemySyncCursorPaginator` and `SQLAlchemyAsyncCursorPaginator` remain unscoped.
 
 ## 1.0.0 (2026-08-08)
 
