@@ -35,6 +35,21 @@ class CursorPage[T]:
     previous_page: str | None
     next_page: str | None
 
+    def with_items[U](self, items: Sequence[U], /) -> CursorPage[U]:
+        """Return this page's navigation metadata with replacement items.
+
+        Returns:
+            A new page containing ``items`` and the original pagination metadata.
+        """
+        return CursorPage(
+            items=items,
+            total=self.total,
+            current_page=self.current_page,
+            current_page_backwards=self.current_page_backwards,
+            previous_page=self.previous_page,
+            next_page=self.next_page,
+        )
+
 
 def decode_cursor(cursor: str | None) -> str | None:
     """Decode a client cursor or raise Litestar's native validation error.

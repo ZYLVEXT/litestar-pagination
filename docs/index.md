@@ -83,6 +83,23 @@ backward. `current_page` refetches the same page in forward direction;
 `current_page_backwards` refetches it through its reverse bookmark. Clients must persist and
 return each cursor unchanged.
 
+Use `page.with_items(serialized_items)` to replace ORM entities with DTOs while preserving every
+bookmark and the total. To prevent a cursor created for one ordering or filter contract from being
+reused with another, pass the same application-owned scope when producing and consuming a page:
+
+```python
+page = await apaginate(
+    session,
+    statement,
+    pagination,
+    cursor_scope="users:v1:created_at:desc",
+)
+```
+
+Scoped cursors keep the existing opaque Base64 representation. A missing or different scope is rejected
+with HTTP 400 before a page or count query runs. Omitting `cursor_scope` preserves the original cursor
+bytes and behavior.
+
 ### Native Litestar forward-only pages
 
 When an endpoint should return Litestar's built-in `CursorPagination`, use the SQLAlchemy

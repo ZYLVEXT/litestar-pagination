@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, aliased, joinedload, mapped_column, relationship
 
 from litestar_pagination import CursorPage, CursorParams
-from litestar_pagination.cursor import encode_cursor
+from litestar_pagination.cursor import decode_cursor, encode_cursor
 from litestar_pagination.ext.sqlalchemy import (
     SQLAlchemyAsyncCursorPaginator,
     SQLAlchemySyncCursorPaginator,
@@ -170,6 +170,39 @@ def test_sync_navigation_and_bookmark_refetch(sync_session: Session) -> None:
     assert _page_ids(previous) == SECOND_PAGE_IDS
     assert _page_ids(forwards) == SECOND_PAGE_IDS
     assert _page_ids(backwards) == SECOND_PAGE_IDS
+
+
+def test_sync_cursor_scope_is_compatible_and_rejects_cross_scope_reuse(sync_session: Session) -> None:
+    """Bind cursors to an application scope without changing unscoped output."""
+    _seed_sync(sync_session)
+    statement = _ordered_widgets()
+    legacy = paginate(sync_session, statement, CursorParams(size=PAGE_SIZE))
+    explicit_unscoped = paginate(sync_session, statement, CursorParams(size=PAGE_SIZE), cursor_scope=None)
+    scoped = paginate(sync_session, statement, CursorParams(size=PAGE_SIZE), cursor_scope="v1:rank:asc")
+
+    assert explicit_unscoped == legacy
+    assert scoped.next_page is not None
+    scoped_bookmark = decode_cursor(scoped.next_page)
+    assert scoped_bookmark is not None
+    assert scoped_bookmark.startswith("v1:rank:asc|")
+    second = paginate(
+        sync_session,
+        statement,
+        CursorParams(cursor=scoped.next_page, size=PAGE_SIZE),
+        cursor_scope="v1:rank:asc",
+    )
+    assert _page_ids(second) == SECOND_PAGE_IDS
+
+    invalid_statement = select(Widget).where(text("missing_column = 1")).order_by(Widget.id)
+    invalid_count = cast("Select[tuple[int]]", select(text("missing_count_column")))
+    with pytest.raises(ValidationException, match="does not match"):
+        paginate(
+            sync_session,
+            invalid_statement,
+            CursorParams(cursor=scoped.next_page, size=PAGE_SIZE),
+            count_query=invalid_count,
+            cursor_scope="v1:created_at:desc",
+        )
 
 
 def test_native_litestar_sync_paginator(sync_session: Session) -> None:
@@ -365,6 +398,29 @@ async def test_async_navigation_and_bookmark_refetch(async_session: AsyncSession
     assert _page_ids(previous) == SECOND_PAGE_IDS
     assert _page_ids(forwards) == SECOND_PAGE_IDS
     assert _page_ids(backwards) == SECOND_PAGE_IDS
+
+
+async def test_async_cursor_scope_navigation(async_session: AsyncSession) -> None:
+    """Apply the same scoped-cursor contract to asynchronous pagination."""
+    await _seed_async(async_session)
+    first = await apaginate(
+        async_session,
+        _ordered_widgets(),
+        CursorParams(size=PAGE_SIZE),
+        cursor_scope="v1:rank:asc",
+    )
+    second = await apaginate(
+        async_session,
+        _ordered_widgets(),
+        CursorParams(cursor=first.next_page, size=PAGE_SIZE),
+        cursor_scope="v1:rank:asc",
+    )
+
+    assert first.next_page is not None
+    scoped_bookmark = decode_cursor(first.next_page)
+    assert scoped_bookmark is not None
+    assert scoped_bookmark.startswith("v1:rank:asc|")
+    assert _page_ids(second) == SECOND_PAGE_IDS
 
 
 async def test_native_litestar_async_paginator(async_session: AsyncSession) -> None:

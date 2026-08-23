@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add `CursorPage.with_items()` for metadata-preserving item projection.
+- Add optional application scopes to synchronous and asynchronous SQLAlchemy cursors.
+
 ## 1.0.0 (2026-08-08)
 
 - Preserve developer and database exceptions instead of translating SQLAlchemy `ArgumentError` into HTTP 400.
