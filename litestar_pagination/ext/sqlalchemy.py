@@ -105,12 +105,13 @@ class SQLAlchemyAsyncCursorPaginator[T](AbstractAsyncCursorPaginator[str, T]):
         return list(page.items), page.next_page
 
 
-def paginate[T](
+def paginate[T](  # ruff: ignore[too-many-arguments] - keep independent public cursor/count/scope options explicit.
     session: Session,
     statement: Select[tuple[T]],
     params: CursorParams,
     *,
     count_query: Select[tuple[int]] | None = None,
+    cursor_scope: str | None = None,
     unique: bool = True,
 ) -> CursorPage[T]:
     """Paginate one ordered ORM entity select with a synchronous session.
@@ -120,6 +121,7 @@ def paginate[T](
         statement: An ordered ``select(Model)`` statement.
         params: Cursor query parameters resolved by Litestar.
         count_query: Optional query that returns the total item count.
+        cursor_scope: Optional application scope bound to every emitted and accepted cursor.
         unique: Whether ``sqlakeyset`` should uniquify ORM rows.
 
     Returns:
@@ -129,22 +131,23 @@ def paginate[T](
         ValidationException: If the supplied cursor is invalid.
     """
     _validate_statement(statement)
-    marker = _decode_page_marker(params.cursor)
+    marker = _decode_page_marker(params.cursor, cursor_scope)
 
     try:
         page = select_page(session, statement, page=marker, per_page=params.size, unique=unique)
     except InvalidPage as exc:
         raise ValidationException(detail="Invalid cursor") from exc
 
-    return _cursor_page(page, _sync_total(session, statement, params, count_query))
+    return _cursor_page(page, _sync_total(session, statement, params, count_query), cursor_scope)
 
 
-async def apaginate[T](
+async def apaginate[T](  # ruff: ignore[too-many-arguments] - mirror the synchronous public API.
     session: AsyncSession,
     statement: Select[tuple[T]],
     params: CursorParams,
     *,
     count_query: Select[tuple[int]] | None = None,
+    cursor_scope: str | None = None,
     unique: bool = True,
 ) -> CursorPage[T]:
     """Paginate one ordered ORM entity select with an asynchronous session.
@@ -154,6 +157,7 @@ async def apaginate[T](
         statement: An ordered ``select(Model)`` statement.
         params: Cursor query parameters resolved by Litestar.
         count_query: Optional query that returns the total item count.
+        cursor_scope: Optional application scope bound to every emitted and accepted cursor.
         unique: Whether ``sqlakeyset`` should uniquify ORM rows.
 
     Returns:
@@ -163,17 +167,17 @@ async def apaginate[T](
         ValidationException: If the supplied cursor is invalid.
     """
     _validate_statement(statement)
-    marker = _decode_page_marker(params.cursor)
+    marker = _decode_page_marker(params.cursor, cursor_scope)
 
     try:
         page = await aselect_page(session, statement, page=marker, per_page=params.size, unique=unique)
     except InvalidPage as exc:
         raise ValidationException(detail="Invalid cursor") from exc
 
-    return _cursor_page(page, await _async_total(session, statement, params, count_query))
+    return _cursor_page(page, await _async_total(session, statement, params, count_query), cursor_scope)
 
 
-def _decode_page_marker(cursor: str | None) -> Marker | None:
+def _decode_page_marker(cursor: str | None, cursor_scope: str | None) -> Marker | None:
     """Decode and parse an external cursor before any database work.
 
     Returns:
@@ -185,6 +189,11 @@ def _decode_page_marker(cursor: str | None) -> Marker | None:
     bookmark = decode_cursor(cursor)
     if bookmark is None:
         return None
+    if cursor_scope is not None:
+        prefix = f"{cursor_scope}|"
+        if not bookmark.startswith(prefix):
+            raise ValidationException(detail="Cursor does not match the requested scope")
+        bookmark = bookmark.removeprefix(prefix)
 
     try:
         return unserialize_bookmark(bookmark)
@@ -263,7 +272,17 @@ async def _async_total[T](
     return int(await session.scalar(query) or 0)
 
 
-def _cursor_page[T](page: Page[Row[tuple[T]]], total: int | None) -> CursorPage[T]:
+def _encode_page_cursor(cursor: str, cursor_scope: str | None) -> str | None:
+    """Encode a bookmark with its optional application scope.
+
+    Returns:
+        The external cursor.
+    """
+    bookmark = f"{cursor_scope}|{cursor}" if cursor_scope is not None else cursor
+    return encode_cursor(bookmark)
+
+
+def _cursor_page[T](page: Page[Row[tuple[T]]], total: int | None, cursor_scope: str | None) -> CursorPage[T]:
     """Unwrap ORM entities and expose encoded sqlakeyset navigation bookmarks.
 
     Returns:
@@ -273,8 +292,8 @@ def _cursor_page[T](page: Page[Row[tuple[T]]], total: int | None) -> CursorPage[
     return CursorPage(
         items=[row[0] for row in page],
         total=total,
-        current_page=encode_cursor(paging.bookmark_current_forwards),
-        current_page_backwards=encode_cursor(paging.bookmark_current_backwards),
-        previous_page=encode_cursor(paging.bookmark_previous) if paging.has_previous else None,
-        next_page=encode_cursor(paging.bookmark_next) if paging.has_next else None,
+        current_page=_encode_page_cursor(paging.bookmark_current_forwards, cursor_scope),
+        current_page_backwards=_encode_page_cursor(paging.bookmark_current_backwards, cursor_scope),
+        previous_page=_encode_page_cursor(paging.bookmark_previous, cursor_scope) if paging.has_previous else None,
+        next_page=_encode_page_cursor(paging.bookmark_next, cursor_scope) if paging.has_next else None,
     )

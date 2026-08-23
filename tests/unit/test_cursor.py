@@ -67,3 +67,8 @@ def test_page_is_a_dataclass_serialization_contract() -> None:
         "previous_page": None,
         "next_page": "next",
     }
+
+    mapped = page.with_items((1, 2))
+
+    assert mapped.items == (1, 2)
+    assert asdict(mapped) | {"items": page.items} == asdict(page)
