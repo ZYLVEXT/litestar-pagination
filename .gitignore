@@ -178,3 +178,8 @@ pyrightconfig.json
 .cursor/
 .codacy/
 .codegraph/
+
+# Maintainer VVAH / agentic SAST artifacts (never publish)
+security-scan/
+security-remediation/
+run_manifest.json
